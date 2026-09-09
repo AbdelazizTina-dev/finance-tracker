@@ -1,31 +1,24 @@
-import psycopg2
+from psycopg2 import pool
 import bcrypt
 from datetime import datetime
 
-conn = psycopg2.connect(
-    dbname="finance_tracker",
-    user="postgres",
-    password="admin",
-    host="localhost",
-    port="5432"
-)
 
-password = b"testpassword1234"
-hashed = bcrypt.hashpw(password, bcrypt.gensalt()).decode("UTF-8")
+def insert_user(connection_pool, username: str, email: str, password):
+    pwd_bytes = password.encode("utf-8")
+    hashed = bcrypt.hashpw(pwd_bytes, bcrypt.gensalt()).decode("UTF-8")
 
-cursor = conn.cursor()
-cursor.execute("""INSERT INTO users(  
-    created_at,
-    username,
-    email,
-    hashed_password
-) VALUES(
-    %s, %s, %s, %s
-);""", (datetime.now(), "test_user", "test@email.com", hashed))
-conn.commit()
-cursor.execute("SELECT * FROM users;")
-result = cursor.fetchone()
-print(result)
+    conn = connection_pool.getconn()
 
-cursor.close()
-conn.close()
+    cursor = conn.cursor()
+    cursor.execute("""INSERT INTO users(  
+        created_at,
+        username,
+        email,
+        hashed_password
+    ) VALUES(
+        %s, %s, %s, %s
+    );""", (datetime.now(), username, email, hashed))
+    conn.commit()
+
+    cursor.close()
+    connection_pool.putconn(conn)
