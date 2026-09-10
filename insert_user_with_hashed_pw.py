@@ -1,4 +1,3 @@
-from psycopg2 import pool
 import bcrypt
 from datetime import datetime
 
