@@ -3,7 +3,8 @@ from insert_user_with_hashed_pw import insert_user
 from select_user import select_user
 from contextlib import asynccontextmanager
 from psycopg2 import pool
-from models import UserPublic, UserLogin, UserCreate
+from models import UserPublic, UserLogin, UserCreate, LoginReponse
+from generate_jwt import generate_jwt
 import bcrypt
 
 @asynccontextmanager
@@ -32,7 +33,7 @@ def register_user(user: UserCreate):
     user = select_user(app.state.pool, user.email)
     return user
 
-@app.post("/login", response_model=UserPublic)
+@app.post("/login", response_model=LoginReponse)
 def login_user(user_credentials: UserLogin):
     user = select_user(app.state.pool, user_credentials.email)
     
@@ -40,6 +41,6 @@ def login_user(user_credentials: UserLogin):
          raise HTTPException(status_code=401, detail="Invalid email or password")
     
     if bcrypt.checkpw(user_credentials.password.encode("utf-8"), user.password.encode("utf-8")):
-        return user
+        return LoginReponse(jwt=generate_jwt(user.id))
     
     raise HTTPException(status_code=401, detail="Invalid email or password")

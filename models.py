@@ -24,3 +24,6 @@ class UserPublic(BaseModel):
     email: str
     created_at: datetime
     updated_at: datetime | None
+    
+class LoginReponse(BaseModel):
+    jwt: str
