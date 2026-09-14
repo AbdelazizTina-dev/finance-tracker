@@ -1,11 +1,20 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from insert_user_with_hashed_pw import insert_user
 from select_user import select_user
 from contextlib import asynccontextmanager
 from psycopg2 import pool
 from models import UserPublic, UserLogin, UserCreate, LoginReponse
 from generate_jwt import generate_jwt
+from dotenv import load_dotenv
+from datetime import datetime, timedelta, timezone
+import jwt
 import bcrypt
+import os
+
+load_dotenv()
+secret_key = os.getenv("JWT_SECRET")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -38,9 +47,23 @@ def login_user(user_credentials: UserLogin):
     user = select_user(app.state.pool, user_credentials.email)
     
     if user is None:
-         raise HTTPException(status_code=401, detail="Invalid email or password")
+        raise HTTPException(status_code=401, detail="Invalid email or password")
     
     if bcrypt.checkpw(user_credentials.password.encode("utf-8"), user.password.encode("utf-8")):
         return LoginReponse(jwt=generate_jwt(user.id))
     
     raise HTTPException(status_code=401, detail="Invalid email or password")
+
+security = HTTPBearer()
+@app.get("/protected")
+def read_protected(auth: HTTPAuthorizationCredentials = Depends(security)):
+    token = auth.credentials
+    
+    try:
+        jwt.decode(token, key=secret_key, algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    return {"message": "You are authorized to read this!"}
