@@ -1,4 +1,4 @@
-from models import User
+from models.models import User
 
 def select_user(connection_pool, email: str) -> User | None:
     conn = connection_pool.getconn()

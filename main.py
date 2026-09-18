@@ -1,11 +1,11 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from insert_user_with_hashed_pw import insert_user
-from select_user import select_user
+from scripts.insert_user_with_hashed_pw import insert_user
+from utils.select_user import select_user
 from contextlib import asynccontextmanager
 from psycopg2 import pool
-from models import UserPublic, UserLogin, UserCreate, LoginReponse
-from generate_jwt import generate_jwt
+from models.models import UserPublic, UserLogin, UserCreate, LoginReponse
+from utils.generate_jwt import generate_jwt
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
 import jwt
