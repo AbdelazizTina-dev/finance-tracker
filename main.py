@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from scripts.insert_user_with_hashed_pw import insert_user
-from utils.select_user import select_user
+from db_helpers.users.insert_user_with_hashed_pw import insert_user
+from db_helpers.users.select_user import select_user
 from contextlib import asynccontextmanager
 from psycopg2 import pool
 from models.models import UserPublic, UserLogin, UserCreate, LoginReponse
