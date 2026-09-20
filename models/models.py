@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
+from enum import Enum
 
 class UserCreate(BaseModel):
     username: str
@@ -27,3 +28,19 @@ class UserPublic(BaseModel):
     
 class LoginReponse(BaseModel):
     jwt: str
+
+class CategoryType(str, Enum):
+    INCOME = "income"
+    EXPENSE = "expense"
+    
+class CategoryCreate(BaseModel):
+    name: str
+    type: CategoryType
+    
+class Category(BaseModel):
+    name: str
+    type: CategoryType
+    id: int
+    user_id: int
+    created_at: datetime
+

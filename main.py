@@ -2,12 +2,14 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from db_helpers.users.insert_user_with_hashed_pw import insert_user
 from db_helpers.users.select_user import select_user
+from db_helpers.categories.insert_category import insert_category
+from db_helpers.categories.select_category import select_category
 from contextlib import asynccontextmanager
 from psycopg2 import pool
-from models.models import UserPublic, UserLogin, UserCreate, LoginReponse
+from models.models import UserPublic, UserLogin, UserCreate, LoginReponse, CategoryCreate
 from utils.generate_jwt import generate_jwt
+from utils.get_current_user_id import get_current_user_id
 from dotenv import load_dotenv
-from datetime import datetime, timedelta, timezone
 import jwt
 import bcrypt
 import os
@@ -67,3 +69,9 @@ def read_protected(auth: HTTPAuthorizationCredentials = Depends(security)):
         raise HTTPException(status_code=401, detail="Invalid token")
     
     return {"message": "You are authorized to read this!"}
+
+@app.post("/categories")
+def create_category(category: CategoryCreate, user_id: int = Depends(get_current_user_id)):
+    insert_category(app.state.pool, user_id, category)
+    category = select_category(app.state.pool, category.name, user_id)
+    return category
