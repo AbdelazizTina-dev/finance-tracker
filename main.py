@@ -4,9 +4,11 @@ from db_helpers.users.insert_user_with_hashed_pw import insert_user
 from db_helpers.users.select_user import select_user
 from db_helpers.categories.insert_category import insert_category
 from db_helpers.categories.select_category import select_category
+from db_helpers.transactions.insert_transaction import insert_transaction
+from db_helpers.transactions.select_transaction import select_transaction
 from contextlib import asynccontextmanager
 from psycopg2 import pool
-from models.models import UserPublic, UserLogin, UserCreate, LoginReponse, CategoryCreate
+from models.models import UserPublic, UserLogin, UserCreate, LoginReponse, CategoryCreate, TransactionCreate
 from utils.generate_jwt import generate_jwt
 from utils.get_current_user_id import get_current_user_id
 from dotenv import load_dotenv
@@ -75,3 +77,7 @@ def create_category(category: CategoryCreate, user_id: int = Depends(get_current
     insert_category(app.state.pool, user_id, category)
     category = select_category(app.state.pool, category.name, user_id)
     return category
+
+@app.post("/transactions")
+def create_transaction(transaction: TransactionCreate, user_id: int = Depends(get_current_user_id)):
+    return insert_transaction(app.state.pool, user_id, transaction)

@@ -1,6 +1,8 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from decimal import Decimal
 from datetime import datetime
 from enum import Enum
+from constants.constants import TRANSACTION_AMOUNT_DECIMAL_PLACES, TRANSACTION_AMOUNT_MAX_DEGITS
 
 class UserCreate(BaseModel):
     username: str
@@ -42,5 +44,18 @@ class Category(BaseModel):
     type: CategoryType
     id: int
     user_id: int
+    created_at: datetime
+
+class TransactionCreate(BaseModel):
+    amount: Decimal = Field(max_digits=TRANSACTION_AMOUNT_MAX_DEGITS, decimal_places=TRANSACTION_AMOUNT_DECIMAL_PLACES)
+    category_id: int | None = None
+    description: str | None = None
+    
+class Transaction(BaseModel):
+    id: int
+    user_id: int
+    category_id: int | None = None
+    amount: Decimal = Field(max_digits=TRANSACTION_AMOUNT_MAX_DEGITS, decimal_places=TRANSACTION_AMOUNT_DECIMAL_PLACES)
+    description: str | None = None
     created_at: datetime
 
