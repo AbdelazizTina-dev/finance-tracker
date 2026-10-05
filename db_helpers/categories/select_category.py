@@ -9,8 +9,8 @@ def select_category(connection_pool, name: str, user_id: int) -> Category | None
     category = cursor.fetchone()
     if category is None:
         return None
-    (id, user_id, name, type, created_at) = category
-    category = Category(id = id, name = name, type = type, user_id = user_id, created_at = created_at)
+    (id, user_id, name, created_at) = category
+    category = Category(id = id, name = name, user_id = user_id, created_at = created_at)
     cursor.close()
     connection_pool.putconn(conn)
     return category

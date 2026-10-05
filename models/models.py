@@ -31,17 +31,15 @@ class UserPublic(BaseModel):
 class LoginReponse(BaseModel):
     jwt: str
 
-class CategoryType(str, Enum):
+class TransactionType(str, Enum):
     INCOME = "income"
     EXPENSE = "expense"
     
 class CategoryCreate(BaseModel):
     name: str
-    type: CategoryType
     
 class Category(BaseModel):
     name: str
-    type: CategoryType
     id: int
     user_id: int
     created_at: datetime
@@ -49,11 +47,13 @@ class Category(BaseModel):
 class TransactionCreate(BaseModel):
     amount: Decimal = Field(max_digits=TRANSACTION_AMOUNT_MAX_DEGITS, decimal_places=TRANSACTION_AMOUNT_DECIMAL_PLACES)
     category_id: int | None = None
+    type: TransactionType
     description: str | None = None
     
 class Transaction(BaseModel):
     id: int
     user_id: int
+    type: TransactionType
     category_id: int | None = None
     amount: Decimal = Field(max_digits=TRANSACTION_AMOUNT_MAX_DEGITS, decimal_places=TRANSACTION_AMOUNT_DECIMAL_PLACES)
     description: str | None = None

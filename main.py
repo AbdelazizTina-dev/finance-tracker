@@ -5,7 +5,6 @@ from db_helpers.users.select_user import select_user
 from db_helpers.categories.insert_category import insert_category
 from db_helpers.categories.select_category import select_category
 from db_helpers.transactions.insert_transaction import insert_transaction
-from db_helpers.transactions.select_transaction import select_transaction
 from contextlib import asynccontextmanager
 from psycopg2 import pool
 from models.models import UserPublic, UserLogin, UserCreate, LoginReponse, CategoryCreate, TransactionCreate

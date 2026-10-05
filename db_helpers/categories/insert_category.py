@@ -8,11 +8,11 @@ def insert_category(connection_pool, user_id: int, payload: CategoryCreate):
     cursor.execute("""INSERT INTO categories(
         created_at,
         user_id,
-        name,
-        type
+        name
     ) VALUES(
-        %s, %s, %s, %s
-    );""", (datetime.now(), user_id, payload.name, payload.type))
+        %s, %s, %s
+    );""", (datetime.now(), user_id, payload.name)
+    )
     conn.commit()
 
     cursor.close()

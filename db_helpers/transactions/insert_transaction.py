@@ -10,15 +10,16 @@ def insert_transaction(connection_pool, user_id: int, payload: TransactionCreate
         user_id,
         category_id,
         amount,
+        type,
         description
-    ) VALUES(%s, %s, %s, %s, %s)
-    RETURNING id, user_id, category_id, amount, description, created_at;""",
-        (datetime.now(), user_id, payload.category_id, payload.amount, payload.description))
+    ) VALUES(%s, %s, %s, %s, %s, %s)
+    RETURNING id, user_id, category_id, amount, type, description, created_at;""",
+        (datetime.now(), user_id, payload.category_id, payload.amount, payload.type, payload.description))
     
     row = cursor.fetchone()
     conn.commit()
     cursor.close()
     connection_pool.putconn(conn)
     
-    (id, user_id, category_id, amount, description, created_at) = row
-    return Transaction(id=id, user_id=user_id, category_id=category_id, amount=amount, description=description, created_at=created_at)
+    (id, user_id, category_id, amount, type, description, created_at) = row
+    return Transaction(id=id, user_id=user_id, category_id=category_id, amount=amount, type=type, description=description, created_at=created_at)
