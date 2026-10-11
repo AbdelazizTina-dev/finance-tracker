@@ -1,23 +1,31 @@
 from fastapi import FastAPI, HTTPException, Depends
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from db_helpers.users.insert_user_with_hashed_pw import insert_user
 from db_helpers.users.select_user import select_user
 from db_helpers.categories.insert_category import insert_category
 from db_helpers.categories.select_category import select_category
 from db_helpers.transactions.insert_transaction import insert_transaction
+from db_helpers.crud import get_transactions
+from database import SessionLocal
+from sqlalchemy.orm import Session
 from contextlib import asynccontextmanager
 from psycopg2 import pool
 from models.models import UserPublic, UserLogin, UserCreate, LoginReponse, CategoryCreate, TransactionCreate
 from utils.generate_jwt import generate_jwt
 from utils.get_current_user_id import get_current_user_id
 from dotenv import load_dotenv
-import jwt
 import bcrypt
 import os
 
 load_dotenv()
 secret_key = os.getenv("JWT_SECRET")
 
+# Dependency to get DB session
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -57,20 +65,6 @@ def login_user(user_credentials: UserLogin):
     
     raise HTTPException(status_code=401, detail="Invalid email or password")
 
-security = HTTPBearer()
-@app.get("/protected")
-def read_protected(auth: HTTPAuthorizationCredentials = Depends(security)):
-    token = auth.credentials
-    
-    try:
-        jwt.decode(token, key=secret_key, algorithms=["HS256"])
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
-    return {"message": "You are authorized to read this!"}
-
 @app.post("/categories")
 def create_category(category: CategoryCreate, user_id: int = Depends(get_current_user_id)):
     insert_category(app.state.pool, user_id, category)
@@ -80,3 +74,7 @@ def create_category(category: CategoryCreate, user_id: int = Depends(get_current
 @app.post("/transactions")
 def create_transaction(transaction: TransactionCreate, user_id: int = Depends(get_current_user_id)):
     return insert_transaction(app.state.pool, user_id, transaction)
+
+@app.get("/transactions")
+def get_transactions_list(db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
+    return get_transactions(db, user_id)
