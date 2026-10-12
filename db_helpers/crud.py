@@ -1,6 +1,12 @@
 from sqlalchemy.orm import Session
 from db_helpers.database_models import Transaction
+from models.models import TransactionType
 
-def get_transactions(db: Session, user_id: int):
-    print("USER ID = ", user_id)
-    return db.query(Transaction).filter(Transaction.user_id == user_id).all()
+def get_transactions(type: TransactionType, db: Session, user_id: int):
+    query = db.query(Transaction).filter(Transaction.user_id == user_id)
+    
+    if type:
+        query = query.filter(Transaction.type == type)
+        
+    return query.all()
+

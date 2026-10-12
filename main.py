@@ -9,7 +9,7 @@ from database import SessionLocal
 from sqlalchemy.orm import Session
 from contextlib import asynccontextmanager
 from psycopg2 import pool
-from models.models import UserPublic, UserLogin, UserCreate, LoginReponse, CategoryCreate, TransactionCreate
+from models.models import UserPublic, UserLogin, UserCreate, LoginReponse, CategoryCreate, TransactionCreate, TransactionType
 from utils.generate_jwt import generate_jwt
 from utils.get_current_user_id import get_current_user_id
 from dotenv import load_dotenv
@@ -76,5 +76,5 @@ def create_transaction(transaction: TransactionCreate, user_id: int = Depends(ge
     return insert_transaction(app.state.pool, user_id, transaction)
 
 @app.get("/transactions")
-def get_transactions_list(db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
-    return get_transactions(db, user_id)
+def get_transactions_list(type: TransactionType | None = None, db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
+    return get_transactions(type, db, user_id)
