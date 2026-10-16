@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi_pagination import add_pagination, Page
 from db_helpers.users.insert_user_with_hashed_pw import insert_user
 from db_helpers.users.select_user import select_user
 from db_helpers.categories.insert_category import insert_category
@@ -9,7 +10,7 @@ from database import SessionLocal
 from sqlalchemy.orm import Session
 from contextlib import asynccontextmanager
 from psycopg2 import pool
-from models.models import UserPublic, UserLogin, UserCreate, LoginReponse, CategoryCreate, TransactionCreate, TransactionType
+from models.models import UserPublic, UserLogin, UserCreate, LoginReponse, CategoryCreate, TransactionCreate, TransactionType, Transaction
 from utils.generate_jwt import generate_jwt
 from utils.get_current_user_id import get_current_user_id
 from dotenv import load_dotenv
@@ -42,6 +43,7 @@ async def lifespan(app: FastAPI):
     app.state.pool.closeall()
 
 app = FastAPI(lifespan=lifespan)
+add_pagination(app)
 
 @app.get("/")
 def read_root():
@@ -75,6 +77,6 @@ def create_category(category: CategoryCreate, user_id: int = Depends(get_current
 def create_transaction(transaction: TransactionCreate, user_id: int = Depends(get_current_user_id)):
     return insert_transaction(app.state.pool, user_id, transaction)
 
-@app.get("/transactions")
+@app.get("/transactions", response_model=Page[Transaction])
 def get_transactions_list(type: TransactionType | None = None, db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
     return get_transactions(type, db, user_id)
