@@ -50,6 +50,10 @@ class TransactionCreate(BaseModel):
     type: TransactionType
     description: str | None = None
     
+class TransactionPatch(BaseModel):
+    amount: Decimal | None  = Field(max_digits=TRANSACTION_AMOUNT_MAX_DEGITS, decimal_places=TRANSACTION_AMOUNT_DECIMAL_PLACES, default=None)
+    description: str | None = None
+    
 class Transaction(BaseModel):
     id: int
     user_id: int

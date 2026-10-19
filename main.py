@@ -10,7 +10,8 @@ from database import SessionLocal
 from sqlalchemy.orm import Session
 from contextlib import asynccontextmanager
 from psycopg2 import pool
-from models.models import UserPublic, UserLogin, UserCreate, LoginReponse, CategoryCreate, TransactionCreate, TransactionType, Transaction
+from db_helpers.database_models import Transaction as TransactionAlchemy
+from models.models import UserPublic, UserLogin, UserCreate, LoginReponse, CategoryCreate, TransactionCreate, TransactionType, Transaction, TransactionPatch
 from utils.generate_jwt import generate_jwt
 from utils.get_current_user_id import get_current_user_id
 from dotenv import load_dotenv
@@ -80,3 +81,22 @@ def create_transaction(transaction: TransactionCreate, user_id: int = Depends(ge
 @app.get("/transactions", response_model=Page[Transaction])
 def get_transactions_list(type: TransactionType | None = None, db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
     return get_transactions(type, db, user_id)
+
+@app.patch("/transactions/{id}", response_model=Transaction)
+def patch_transaction(id: int, payload: TransactionPatch,db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
+    transaction = db.query(TransactionAlchemy).filter(TransactionAlchemy.user_id == user_id).filter(TransactionAlchemy.id == id).first()
+    
+    if transaction is None:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+
+    data_dict = payload.model_dump(exclude_unset=True)
+    
+    if ("amount" in data_dict and data_dict["amount"] is None):
+        raise HTTPException(status_code=422, detail="amount cannot be null")
+    
+    for key, value in data_dict.items():
+        setattr(transaction, key, value)
+        
+    db.commit()
+    
+    return transaction
