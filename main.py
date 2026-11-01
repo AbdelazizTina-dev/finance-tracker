@@ -7,11 +7,13 @@ from db_helpers.categories.select_category import select_category
 from db_helpers.transactions.insert_transaction import insert_transaction
 from db_helpers.crud import get_transactions
 from database import SessionLocal
+from sqlalchemy import insert
 from sqlalchemy.orm import Session
 from contextlib import asynccontextmanager
 from psycopg2 import pool
-from db_helpers.database_models import Transaction as TransactionAlchemy
-from models.models import UserPublic, UserLogin, UserCreate, LoginReponse, CategoryCreate, TransactionCreate, TransactionType, Transaction, TransactionPatch
+from datetime import datetime
+from db_helpers.database_models import Transaction as TransactionAlchemy, Category as CategoryAlchemy
+from models.models import UserPublic, UserLogin, UserCreate, LoginReponse, CategoryCreate, Category, TransactionCreate, TransactionType, Transaction, TransactionPatch
 from utils.generate_jwt import generate_jwt
 from utils.get_current_user_id import get_current_user_id
 from dotenv import load_dotenv
@@ -74,9 +76,26 @@ def create_category(category: CategoryCreate, user_id: int = Depends(get_current
     category = select_category(app.state.pool, category.name, user_id)
     return category
 
-@app.post("/transactions")
-def create_transaction(transaction: TransactionCreate, user_id: int = Depends(get_current_user_id)):
-    return insert_transaction(app.state.pool, user_id, transaction)
+@app.post("/transactions", response_model=Transaction)
+def create_transaction(transaction: TransactionCreate, db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
+    if transaction.category_id is not None:
+        category = db.query(CategoryAlchemy).filter(CategoryAlchemy.id == transaction.category_id).filter(CategoryAlchemy.user_id == user_id).first()
+        if category is None:
+            raise HTTPException(status_code=404, detail="Category not found")
+        
+    new_tx = TransactionAlchemy(
+        user_id=user_id,
+        created_at=datetime.now(),
+        amount=transaction.amount,
+        category_id=transaction.category_id,
+        type=transaction.type,
+        description=transaction.description
+    )
+    db.add(new_tx)
+    db.commit()
+    db.refresh(new_tx)
+    
+    return new_tx
 
 @app.get("/transactions", response_model=Page[Transaction])
 def get_transactions_list(type: TransactionType | None = None, db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
@@ -96,7 +115,7 @@ def patch_transaction(id: int, payload: TransactionPatch,db: Session = Depends(g
     
     for key, value in data_dict.items():
         setattr(transaction, key, value)
-        
+
     db.commit()
     
     return transaction
