@@ -7,12 +7,12 @@ from db_helpers.categories.select_category import select_category
 from db_helpers.transactions.insert_transaction import insert_transaction
 from db_helpers.crud import get_transactions
 from database import SessionLocal
-from sqlalchemy import insert
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from contextlib import asynccontextmanager
 from psycopg2 import pool
 from datetime import datetime
-from db_helpers.database_models import Transaction as TransactionAlchemy, Category as CategoryAlchemy
+from db_helpers.database_models import Transaction as TransactionAlchemy, Category as CategoryAlchemy, User as UserAlchemy
 from models.models import UserPublic, UserLogin, UserCreate, LoginReponse, CategoryCreate, Category, TransactionCreate, TransactionType, Transaction, TransactionPatch
 from utils.generate_jwt import generate_jwt
 from utils.get_current_user_id import get_current_user_id
@@ -53,10 +53,26 @@ def read_root():
     return {"message": "Hello Backend!"}
 
 @app.post("/register", response_model=UserPublic)
-def register_user(user: UserCreate):
-    insert_user(app.state.pool, user.username, user.email, user.password)
-    user = select_user(app.state.pool, user.email)
-    return user
+def register_user(user: UserCreate,  db: Session = Depends(get_db)):
+    pwd_bytes = user.password.encode("utf-8")
+    hashed = bcrypt.hashpw(pwd_bytes, bcrypt.gensalt()).decode("UTF-8")
+    new_user = UserAlchemy(
+        created_at=datetime.now(),
+        email=user.email,
+        username=user.username,
+        hashed_password=hashed
+    )
+    
+    try:
+        db.add(new_user)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Email or username already taken!")
+
+    db.refresh(new_user)
+    
+    return new_user
 
 @app.post("/login", response_model=LoginReponse)
 def login_user(user_credentials: UserLogin):
