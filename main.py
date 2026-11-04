@@ -74,16 +74,22 @@ def register_user(user: UserCreate,  db: Session = Depends(get_db)):
     
     return new_user
 
+DUMMY_HASH = bcrypt.hashpw(b"not-a-real-password", bcrypt.gensalt())
+
 @app.post("/login", response_model=LoginReponse)
-def login_user(user_credentials: UserLogin):
-    user = select_user(app.state.pool, user_credentials.email)
-    
-    if user is None:
-        raise HTTPException(status_code=401, detail="Invalid email or password")
-    
-    if bcrypt.checkpw(user_credentials.password.encode("utf-8"), user.password.encode("utf-8")):
+def login_user(user_credentials: UserLogin, db: Session = Depends(get_db)):
+    user = db.query(UserAlchemy).filter(UserAlchemy.email == user_credentials.email).first()
+
+    if user is not None:
+        hash_to_check = user.hashed_password.encode("utf-8")
+    else:
+        hash_to_check = DUMMY_HASH
+
+    is_password_correct = bcrypt.checkpw(user_credentials.password.encode("utf-8"), hash_to_check)
+
+    if user is not None and is_password_correct:
         return LoginReponse(jwt=generate_jwt(user.id))
-    
+
     raise HTTPException(status_code=401, detail="Invalid email or password")
 
 @app.post("/categories")
