@@ -1,16 +1,9 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi_pagination import add_pagination, Page
-from db_helpers.users.insert_user_with_hashed_pw import insert_user
-from db_helpers.users.select_user import select_user
-from db_helpers.categories.insert_category import insert_category
-from db_helpers.categories.select_category import select_category
-from db_helpers.transactions.insert_transaction import insert_transaction
 from db_helpers.crud import get_transactions
 from database import SessionLocal
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from contextlib import asynccontextmanager
-from psycopg2 import pool
 from datetime import datetime
 from db_helpers.database_models import Transaction as TransactionAlchemy, Category as CategoryAlchemy, User as UserAlchemy
 from models.models import UserPublic, UserLogin, UserCreate, LoginReponse, CategoryCreate, Category, TransactionCreate, TransactionType, Transaction, TransactionPatch
@@ -31,21 +24,7 @@ def get_db():
     finally:
         db.close()
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    app.state.pool = pool.SimpleConnectionPool(
-        minconn=1,
-        maxconn=10,
-        dbname="finance_tracker",
-        user="postgres",
-        password="admin",
-        host="localhost",
-        port="5432"
-    )
-    yield
-    app.state.pool.closeall()
-
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 add_pagination(app)
 
 @app.get("/")
@@ -92,11 +71,24 @@ def login_user(user_credentials: UserLogin, db: Session = Depends(get_db)):
 
     raise HTTPException(status_code=401, detail="Invalid email or password")
 
-@app.post("/categories")
-def create_category(category: CategoryCreate, user_id: int = Depends(get_current_user_id)):
-    insert_category(app.state.pool, user_id, category)
-    category = select_category(app.state.pool, category.name, user_id)
-    return category
+@app.post("/categories", response_model=Category)
+def create_category(category: CategoryCreate, db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
+    new_category = CategoryAlchemy(
+        created_at=datetime.now(),
+        user_id=user_id,
+        name=category.name
+    )
+    
+    try:
+        db.add(new_category)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Category Name already taken!")
+
+    db.refresh(new_category)
+    
+    return new_category
 
 @app.post("/transactions", response_model=Transaction)
 def create_transaction(transaction: TransactionCreate, db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
